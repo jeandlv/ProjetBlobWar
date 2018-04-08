@@ -12,13 +12,29 @@ impl Strategy for MinMax {
 
     fn compute_next_move(&mut self, state: &Configuration) -> Option<Movement> {
         let depth = self.0;
-        let mut val = -100;
         let mut mvmt = None;
-        for mov in state.movements() {
-            let cur_val = find_next_move(depth - 1, &Configuration::play(state, &mov));
-            if cur_val > val {
-                mvmt = Some(mov);
-                val = cur_val;
+        //maximize
+        if depth % 2 == 1 {
+            println!("Maximize");
+            let mut val = -100;
+            for mov in state.movements() {
+                let cur_val = find_next_move(depth - 1, false, &Configuration::play(state, &mov));
+                if cur_val > val {
+                    mvmt = Some(mov);
+                    val = cur_val;
+                }
+            }
+        }
+        //minimize
+        else {
+            println!("Minimize");
+            let mut val = 100;
+            for mov in state.movements() {
+                let cur_val = find_next_move(depth - 1, true, &Configuration::play(state, &mov));
+                if cur_val < val {
+                    mvmt = Some(mov);
+                    val = cur_val;
+                }
             }
         }
         return mvmt;
@@ -42,15 +58,17 @@ pub fn min_max_anytime(state: &Configuration) {
     }
 }
 
-fn find_next_move(depth : u8, state: &Configuration) -> i8 {
+fn find_next_move(depth : u8, maximize : bool, state: &Configuration) -> i8 {
     if depth == 0 {
+        //println!("reach 0 depth");
+        //println!("{:?}", Configuration::value(state));
         return Configuration::value(state)
     }
     //maximizing player
-    if depth % 2 == 0 {
+    if maximize {
         let mut val = -100;
         for mov in state.movements() {
-            val = cmp::max(find_next_move(depth - 1, &Configuration::play(state, &mov)) , val);
+            val = cmp::max(find_next_move(depth - 1, false,  &Configuration::play(state, &mov)) , val);
         }
         //println!("Passé par le maximizing player");
         return val;
@@ -59,7 +77,7 @@ fn find_next_move(depth : u8, state: &Configuration) -> i8 {
     else {
         let mut val = 100;
         for mov in state.movements() {
-            val = cmp::min(find_next_move(depth - 1, &Configuration::play(state, &mov)), val);
+            val = cmp::min(find_next_move(depth - 1, true, &Configuration::play(state, &mov)), val);
         }
         //println!("Passé par le minimizing player");
         return val;
