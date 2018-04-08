@@ -1,5 +1,6 @@
 //! Implementation of the min max algorithm.
 use std::fmt;
+use std::cmp;
 use super::Strategy;
 use configuration::{Configuration, Movement};
 use shmem::AtomicMove;
@@ -8,8 +9,19 @@ use shmem::AtomicMove;
 pub struct MinMax(pub u8);
 
 impl Strategy for MinMax {
+
     fn compute_next_move(&mut self, state: &Configuration) -> Option<Movement> {
-        unimplemented!("TODO: implementer min max")
+        let depth = self.0;
+        let mut val = -100;
+        let mut mvmt = None;
+        for mov in state.movements() {
+            let cur_val = find_next_move(depth - 1, &Configuration::play(state, &mov));
+            if cur_val > val {
+                mvmt = Some(mov);
+                val = cur_val;
+            }
+        }
+        return mvmt;
     }
 }
 
@@ -27,5 +39,29 @@ pub fn min_max_anytime(state: &Configuration) {
     let mut movement = AtomicMove::connect().expect("failed connecting to shmem");
     for depth in 1..100 {
         movement.store(MinMax(depth).compute_next_move(state));
+    }
+}
+
+fn find_next_move(depth : u8, state: &Configuration) -> i8 {
+    if depth == 0 {
+        return Configuration::value(state)
+    }
+    //maximizing player
+    if depth % 2 == 0 {
+        let mut val = -100;
+        for mov in state.movements() {
+            val = cmp::max(find_next_move(depth - 1, &Configuration::play(state, &mov)) , val);
+        }
+        //println!("Passé par le maximizing player");
+        return val;
+    }
+    // minimizing player
+    else {
+        let mut val = 100;
+        for mov in state.movements() {
+            val = cmp::min(find_next_move(depth - 1, &Configuration::play(state, &mov)), val);
+        }
+        //println!("Passé par le minimizing player");
+        return val;
     }
 }
